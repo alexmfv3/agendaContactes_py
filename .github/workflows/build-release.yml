@@ -1,0 +1,79 @@
+name: Compilar i publicar l'executable
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instal·lar dependències
+        run: python -m pip install --upgrade pip pillow pyinstaller
+
+      - name: Prova ràpida (obrir i tancar l'app)
+        shell: pwsh
+        run: |
+          @'
+          import sys
+          from formularios.form_maestro_design import FormularioMaestroDesign
+          app = FormularioMaestroDesign()
+          app.after(800, app.abrirAEDContactos)
+          app.after(1600, app.abrirGraficos)
+          app.after(2400, app.destroy)
+          app.mainloop()
+          print("OK")
+          '@ | Set-Content smoke_test.py
+          python smoke_test.py
+          Remove-Item smoke_test.py
+
+      - name: Compilar Agenda.exe
+        run: >
+          python -m PyInstaller --noconfirm --onefile --windowed
+          --name Agenda
+          --icon imagenes/ICON.ico
+          --add-data "imagenes;imagenes"
+          --exclude-module plotly --exclude-module numpy --exclude-module pandas
+          main.py
+
+      - name: Empaquetar
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release/AgendaContactes | Out-Null
+          Copy-Item dist/Agenda.exe release/AgendaContactes/
+          @"
+          Agenda de Contactes
+          ===================
+          Obre Agenda.exe amb doble clic.
+          Els contactes es guarden a la carpeta 'libreta', al costat de l'executable.
+          Codi font: https://github.com/${{ github.repository }}
+          "@ | Set-Content release/AgendaContactes/LLEGEIX-ME.txt
+          Compress-Archive -Path release/AgendaContactes -DestinationPath AgendaContactes-windows.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AgendaContactes-windows
+          path: |
+            AgendaContactes-windows.zip
+            dist/Agenda.exe
+
+      - name: Publicar a Releases
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" AgendaContactes-windows.zip dist/Agenda.exe `
+            --repo "${{ github.repository }}" `
+            --title "Agenda de Contactes ${{ github.ref_name }}" `
+            --notes-file .github/release-notes.md

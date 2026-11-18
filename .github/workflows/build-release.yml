@@ -1,8 +1,8 @@
 name: Compilar i publicar l'executable
 
 on:
-  push:
-    tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -67,13 +67,11 @@ jobs:
             AgendaContactes-windows.zip
             dist/Agenda.exe
 
-      - name: Publicar a Releases
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Pujar l'executable a la Release
+        if: github.event_name == 'release'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" AgendaContactes-windows.zip dist/Agenda.exe `
-            --repo "${{ github.repository }}" `
-            --title "Agenda de Contactes ${{ github.ref_name }}" `
-            --notes-file .github/release-notes.md
+          gh release upload "${{ github.event.release.tag_name }}" AgendaContactes-windows.zip dist/Agenda.exe `
+            --repo "${{ github.repository }}" --clobber

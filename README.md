@@ -59,12 +59,7 @@ python main.py
 
 ## 🛠️ Compilar l'executable
 
-**Automàticament (GitHub Actions):** en publicar una etiqueta de versió, el workflow [`build-release.yml`](.github/workflows/build-release.yml) compila `Agenda.exe` en una màquina Windows i el puja a Releases.
-
-```bash
-git tag v2.1
-git push origin v2.1
-```
+**Automàticament (GitHub Actions):** en publicar una nova Release a GitHub (*Releases → Draft a new release*), el workflow [`build-release.yml`](.github/workflows/build-release.yml) compila `Agenda.exe` en una màquina Windows i l'adjunta a la Release.
 
 **Manualment a Windows:** fes doble clic a [`compilar.bat`](compilar.bat). Deixa el resultat a `dist\Agenda.exe`.
 
